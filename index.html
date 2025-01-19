@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>User manager</title>
+	<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+	<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+</head>
+<body>
+
+	<p><strong>Objectif:</strong> Creer une interface graphique qui nous permet d'utiliser le service user.</p>
+	<h3>Utilisateurs</h3>
+	<div class=" w-25 m-4">
+		<strong>Ajouter un utilisateur</strong>
+		<div class="form-group">
+			<label for="">nom</label>
+			<input type="text" name="name" class="form-control">
+		</div>
+
+		<div class="form-group">
+			<label for="">email</label>
+			<input type="text" name="mail" class="form-control" >
+		</div>
+
+		<div class="form-group">
+			<label for="">role</label>
+			<input type="text" name="role" class="form-control" >
+		</div>
+
+		<button type="button" class="add-user btn btn-primary m-4">Ajouter</button>
+	</div>
+
+	<div id="users-listing" class="d-flex flex-wrap justify-content-center" style="gap:1rem;">		
+	
+	</div>
+	<script>
+
+		// alert('tout est pas OK!')
+
+		// Creer une fonction lecture:
+		//     1. Recuperation: Recuperer en javascript normale 
+		//        les donnees sur notre application backend
+		// 	   2. Traitement: Traiter ces informations comme tableau javascript
+		//	   3. Affichage: Afficher dans la page web de maniere dynamique, les informations utilisateurs
+		async function getUsers() {
+			const response = await fetch('http://localhost:3000/users')
+			// fetch('http://localhost:3000/users').then(function(response){
+			// 	return (response.json())
+			// }).then(function(response2){
+			// 	console.log(response2)
+			// })
+
+			if(	response.status === 200) {
+				return response.json()
+			} else {
+				return {message:"Bad request"}
+			}
+		}
+
+		async function removeUser(id) {
+			try{
+				const response = await fetch('http://127.0.0.1:3000/users/'+id, {
+					method: "DELETE",
+					headers: {
+						"Content-Type": "application/json"
+					}
+				})
+				if(	response.status === 200) {
+					return true
+				} else {
+					return false
+				}
+			}catch(error){
+				console.error("Erreur de réseau ou d'exécution :", error);
+				return { success: false, message: "Erreur de réseau ou de serveur." };
+			}
+			
+		}
+
+		async function removeUserClient(id, card) {
+			
+			alert('Delete #'+id)
+			const isRemoved = await removeUser(id)
+		 	if(isRemoved){
+				card.closest('.card').remove()
+			}
+		}
+		async function addUser(user){
+			const response = await fetch('http://127.0.0.1:3000/users', {
+				method: "POST",
+				headers: {
+					"Content-Type": "application/json"
+				},
+				body: JSON.stringify(user)
+			})
+			if(	response.status === 201) {
+				return response.json()
+			} else {
+				return false
+			}
+		
+		}
+		
+		async function changeEmail(user){
+		}
+
+
+
+		async function getText() {
+			var time = 0
+			return new Promise((resolve,reject) => {
+
+				let id = setInterval(() => {
+					time++
+					console.log('time: ',time, " second")
+				},1000)
+
+				console.log({id})
+
+				setTimeout(function() {
+					resolve("terminer")
+					clearInterval(id)
+				},1000*3)
+			})
+
+		}
+
+		window.onload =  async function(){ 
+			// alert('tout est OK!')
+//			var text = ""
+
+//			text = await getText()
+
+//			getText().then(function(data){
+//				console.log("J'ai ma data: ",data)
+//			})
+
+
+			const {users} = await getUsers();
+			console.log(users);
+			var usersListing = document.querySelector('#users-listing')
+
+			// user = {"name": "Ariel","role":"dev","email":"ariel@webschool.co.il"}
+			users.forEach(function(user){ 
+				let deleteUserHTML = ''
+				if(user.id){
+					deleteUserHTML = `
+					<div class="text-end delete-user ms-auto" 
+						onclick="removeUserClient(parseInt(${user.id}), this)" 
+						style="width:fit-content;" id="user-${user.id}">
+						<i class="bi bi-x text-danger fs-3" role="button"></i>
+					</div>`
+				}
+				usersListing.innerHTML = usersListing.innerHTML +  `
+				<div class="card" style="width: 18rem;">
+					<div class="card-body">
+						${deleteUserHTML}	
+						<h5 class="card-title">${user.name}</h5
+						<p class="card-text">${user.role}</p>
+						<a href="mailto:${user.email}" class="btn btn-primary">${user.email}</a>
+					</div>
+				</div>
+				`
+			})
+
+
+			var addUserListener = document.querySelector('.add-user');
+			addUserListener.addEventListener('click', async function(e){
+				e.preventDefault()
+				const name = document.querySelector('[name=name]').value
+				const email = document.querySelector('[name=mail]').value
+				const role = document.querySelector('[name=role]').value
+
+				const userData = {name,role,email}
+
+				let {user} = await addUser(userData)
+				console.log(user)
+				if(user.id){ 
+					let deleteUserHTML = ''
+					if(user.id) deleteUserHTML = `
+					<div class="text-end delete-user" onclick="removeUserClient(${user.id}, this)" id="user-${user.id}">
+						<i class="bi bi-x text-danger fs-3" role="button"></i>
+					</div>`
+					
+					var usersListing = document.querySelector('#users-listing')
+					usersListing.innerHTML += `
+						<div class="card" style="width: 18rem;">
+							<div class="card-body">
+								${deleteUserHTML}	
+								<h5 class="card-title">${user.name}</h5
+								<p class="card-text">${user.role}</p>
+								<a href="mailto:${user.email}" class="btn btn-primary">${user.email}</a>
+							</div>
+						</div>`
+					}
+
+			})
+
+		
+		}
+	</script>
+</body>
+</html>
