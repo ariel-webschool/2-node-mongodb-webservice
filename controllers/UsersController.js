@@ -33,21 +33,26 @@ class UsersController {
 
 	static async destroy(req, res) {
 		const { id } = req.params
+		var client = await MongoClient.connect(url, { useNewUrlParser: true, useUnifiedTopology: true });
+		let dbo = client.db('webschool');
+
 		try {
-			let client = await MongoClient.connect(url);
-			let dbo = client.db('webschool');
-			let userDeleted = await dbo.collection("users").findOneAndDelete({ id: parseInt(id) });
-			console.log(userDeleted)
+			
+			console.log({id: parseInt(id)});
+			const result = await dbo.collection("users").findOneAndDelete({ id: parseInt(id) });
 
-			if (userDeleted.id) {
-				res.status(200).json({ message: "User removed with success !", user: userDeleted.id })
+			
+			if (result.id) {  // Si un utilisateur a été supprimé
+				res.status(200).json({ message: "User removed with success !", user: result.id });
+			} else {  // Si l'utilisateur n'a pas été trouvé
+				res.status(404).json({ message: "User not found !" });
 			}
-			else res.status(404).json({ message: "User not found !" })
 
-			client.close()
 		} catch (err) {
 			console.log(err)
 			res.status(500).json({ message: "Error deleting user..." })
+		} finally {
+			client.close()
 		}
 	}
 
